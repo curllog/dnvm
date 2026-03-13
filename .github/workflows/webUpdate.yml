@@ -12,6 +12,36 @@ jobs:
       - name: Sleep for 5 minutes
         run: sleep 5m
         shell: bash
+      - uses: actions/checkout@v3
+      - name: Sync install script template
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.REPO_DISPATCH_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const templateContent = fs.readFileSync('src/install/install.sh.template', 'utf8');
+            const encoded = Buffer.from(templateContent).toString('base64');
+
+            let sha;
+            try {
+              const existing = await github.rest.repos.getContent({
+                owner: "dn-vm",
+                repo: "dn-vm.github.io",
+                path: "src/install.sh.template"
+              });
+              sha = existing.data.sha;
+            } catch (e) {
+              // File doesn't exist yet
+            }
+
+            await github.rest.repos.createOrUpdateFileContents({
+              owner: "dn-vm",
+              repo: "dn-vm.github.io",
+              path: "src/install.sh.template",
+              message: "sync install.sh.template from dnvm repo",
+              content: encoded,
+              sha: sha
+            });
       - name: Trigger Workflow
         uses: actions/github-script@v6
         with:
